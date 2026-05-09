@@ -1,103 +1,89 @@
-export const config = {
-  maxDuration: 30
-};
+async function callAgentRouter({ prompt, model, apiKey }) {
+  const response = await fetch('https://agentrouter.org/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey,
+      'Accept': 'application/json',
+      'User-Agent': 'AgentRouter-Vercel-App/1.0'
+    },
+    body: JSON.stringify({
+      model: model || 'gpt-5',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant. Reply in Indonesian.' },
+        { role: 'user', content: prompt || 'Halo, jawab singkat.' }
+      ]
+    })
+  });
+
+  const raw = await response.text();
+  let data = null;
+  let jsonOk = true;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    jsonOk = false;
+  }
+
+  return {
+    status: response.status,
+    statusText: response.statusText,
+    contentType: response.headers.get('content-type'),
+    jsonOk,
+    data,
+    raw: raw.slice(0, 3000)
+  };
+}
 
 export default async function handler(req, res) {
-  try {
-    res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Type', 'application/json');
 
+  try {
     if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed. Use POST.' });
+      return res.status(405).json({ error: 'Use POST.' });
     }
 
     const apiKey = process.env.AGENT_ROUTER_TOKEN;
-
     if (!apiKey) {
-      return res.status(500).json({
-        error: 'AGENT_ROUTER_TOKEN belum diset di Vercel Environment Variables.'
-      });
+      return res.status(500).json({ error: 'AGENT_ROUTER_TOKEN belum diset.' });
     }
 
-    let body = req.body;
-
-    if (!body || typeof body !== 'object') {
-      return res.status(400).json({ error: 'Body request kosong atau invalid.' });
-    }
-
-    const prompt = String(body.prompt || '').trim();
-    const model = String(body.model || 'gpt-4o-mini').trim();
+    const prompt = String(req.body?.prompt || '').trim();
+    const model = String(req.body?.model || 'gpt-5').trim();
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt kosong.' });
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
+    const result = await callAgentRouter({ prompt, model, apiKey });
 
-    let response;
-    try {
-      response = await fetch('https://agentrouter.org/v1/chat/completions', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + apiKey
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful AI assistant. Reply in Indonesian unless the user asks otherwise.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7
-        })
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    const raw = await response.text();
-
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch (e) {
+    if (!result.jsonOk) {
       return res.status(502).json({
         error: 'AgentRouter tidak mengembalikan JSON.',
-        status: response.status,
-        raw: raw.slice(0, 500)
+        hint: 'Cek raw. Biasanya token invalid, endpoint diblokir, model tidak tersedia, atau AgentRouter mengembalikan HTML error page.',
+        agentRouterStatus: result.status,
+        contentType: result.contentType,
+        raw: result.raw
       });
     }
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || data?.message || 'AgentRouter API error',
-        status: response.status,
-        detail: data
+    if (result.status < 200 || result.status >= 300) {
+      return res.status(result.status).json({
+        error: result.data?.error?.message || result.data?.message || 'AgentRouter error',
+        agentRouterStatus: result.status,
+        detail: result.data
       });
     }
-
-    const reply =
-      data?.choices?.[0]?.message?.content ||
-      data?.choices?.[0]?.text ||
-      data?.message ||
-      'No response from AI';
 
     return res.status(200).json({
-      reply,
-      usage: data?.usage || null
+      reply: result.data?.choices?.[0]?.message?.content || result.data?.choices?.[0]?.text || 'No response from AI',
+      rawData: result.data
     });
 
   } catch (error) {
     return res.status(500).json({
-      error: 'Function error: ' + (error?.message || String(error)),
+      error: 'Function crash: ' + (error?.message || String(error)),
       name: error?.name || 'Error'
     });
   }
-  }
+}

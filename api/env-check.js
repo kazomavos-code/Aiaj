@@ -1,9 +1,9 @@
 export default function handler(req, res) {
+  const token = process.env.AGENT_ROUTER_TOKEN || '';
   return res.status(200).json({
     ok: true,
-    hasAgentRouterToken: Boolean(process.env.AGENT_ROUTER_TOKEN),
-    tokenPrefix: process.env.AGENT_ROUTER_TOKEN
-      ? process.env.AGENT_ROUTER_TOKEN.slice(0, 6) + '...'
-      : null
+    hasAgentRouterToken: Boolean(token),
+    tokenLooksValid: token.startsWith('sk-'),
+    tokenPrefix: token ? token.slice(0, 8) + '...' : null
   });
 }

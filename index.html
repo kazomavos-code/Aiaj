@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentRouter AI - OpenRouter Fixed</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,Arial,sans-serif}
+:root{--bg:#070b18;--panel:#101629;--panel2:#151d35;--text:#f8fbff;--muted:#9aa8c7;--line:rgba(255,255,255,.1);--brand:#4f7cff;--brand2:#00d4ff;--green:#49f5a5;--red:#ff5e7a}
+body.light{--bg:#f4f7fb;--panel:#fff;--panel2:#eef3fb;--text:#111827;--muted:#667085;--line:#dbe3ef}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+.app{display:grid;grid-template-columns:320px 1fr;min-height:100vh}
+aside{background:linear-gradient(180deg,var(--panel),#0a1020);border-right:1px solid var(--line);padding:22px;display:flex;flex-direction:column;gap:18px}
+body.light aside{background:var(--panel)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;font-weight:900}
+.brand h1{font-size:22px}.brand span{color:var(--brand2)}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:16px}
+.label{font-size:13px;color:var(--muted);margin-bottom:8px}
+.row{display:flex;gap:10px;align-items:center}
+.input,select,textarea{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:12px;outline:none}
+textarea{resize:vertical;min-height:150px}
+.btn{border:none;border-radius:14px;padding:12px 14px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:white;font-weight:800;cursor:pointer}
+.btn.secondary{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn.full{width:100%}
+.status{font-size:13px;color:var(--red);margin-top:8px}.status.ok{color:var(--green)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:999px;padding:8px 11px;font-size:13px;cursor:pointer}
+.chip.active{color:white;background:linear-gradient(135deg,var(--brand),var(--brand2));border:none}
+main{display:flex;flex-direction:column;min-width:0}
+.topbar{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(255,255,255,.02)}
+.topbar h2{font-size:20px}.topbar p{color:var(--muted);font-size:13px}
+.content{display:grid;grid-template-columns:1fr 410px;gap:20px;padding:20px;flex:1;min-height:0}
+.chat,.tools{background:var(--panel);border:1px solid var(--line);border-radius:24px;overflow:hidden;display:flex;flex-direction:column}
+.chat-head,.tools-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.messages{padding:18px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:14px;min-height:360px}
+.msg{max-width:85%;padding:14px 16px;border-radius:18px;line-height:1.55}
+.msg.ai{background:var(--panel2);border:1px solid var(--line)}
+.msg.user{background:linear-gradient(135deg,var(--brand),var(--brand2));align-self:flex-end;color:white}
+.composer{border-top:1px solid var(--line);padding:16px;display:grid;gap:10px}
+.composer-actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.tools-body{padding:18px;display:flex;flex-direction:column;gap:16px;overflow:auto}
+.upload{border:1px dashed var(--line);border-radius:18px;padding:20px;text-align:center;color:var(--muted);cursor:pointer}
+.output{background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:14px;min-height:180px;color:var(--muted);white-space:pre-wrap}
+.range{width:100%}.mini{font-size:12px;color:var(--muted)}
+@media(max-width:1050px){.app{grid-template-columns:1fr}.content{grid-template-columns:1fr}.tools{order:-1}aside{border-right:none;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+<div class="brand"><div class="logo">AI</div><div><h1>AgentRouter<span> AI</span></h1><div class="mini">OpenRouter API fixed</div></div></div>
+
+<div class="card">
+  <div class="label">OpenRouter API Key</div>
+  <div class="row">
+    <input id="apiKey" class="input" type="password" placeholder="sk-or-v1-...">
+    <button class="btn" onclick="connectApi()">Connect</button>
+  </div>
+  <div id="apiStatus" class="status">Not connected</div>
+</div>
+
+<div class="card">
+  <div class="label">Model</div>
+  <select id="model">
+    <option value="openai/gpt-4o-mini">openai/gpt-4o-mini</option>
+    <option value="deepseek/deepseek-chat-v3.1">deepseek/deepseek-chat-v3.1</option>
+    <option value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet</option>
+    <option value="google/gemini-flash-1.5">google/gemini-flash-1.5</option>
+    <option value="meta-llama/llama-3.1-8b-instruct">meta-llama/llama-3.1-8b-instruct</option>
+  </select>
+</div>
+
+<div class="card">
+  <div class="label">Settings</div>
+  <div class="mini">Temperature: <span id="tempValue">0.7</span></div>
+  <input id="temperature" class="range" type="range" min="0" max="1" step="0.1" value="0.7" oninput="tempValue.textContent=this.value">
+  <br><br>
+  <button class="btn secondary full" onclick="toggleTheme()">Mode Terang/Gelap</button>
+</div>
+
+<div class="card">
+  <div class="label">Endpoint</div>
+  <input id="endpoint" class="input" value="/api/chat">
+  <div class="mini" style="margin-top:8px">Biarkan <b>/api/chat</b>. Jangan isi URL homepage.</div>
+</div>
+</aside>
+
+<main>
+<div class="topbar">
+  <div><h2>AI Chat Dashboard</h2><p>Sudah tersambung ke OpenRouter-compatible API route.</p></div>
+  <button class="btn secondary" onclick="newChat()">New Chat</button>
+</div>
+
+<div class="content">
+<section class="chat">
+<div class="chat-head">
+  <strong>Rich Agent Chat</strong>
+  <div class="chips">
+    <button class="chip active" onclick="setMode('chat', this)">AI Chat</button>
+    <button class="chip" onclick="setMode('code', this)">AI Code</button>
+  </div>
+</div>
+
+<div class="messages" id="messages">
+  <div class="msg ai"><strong>AgentRouter AI</strong><br>Masukkan OpenRouter API key, klik Connect, lalu kirim prompt.</div>
+</div>
+
+<div class="composer">
+  <textarea id="prompt" placeholder="Tulis prompt kamu di sini..."></textarea>
+  <div class="composer-actions">
+    <div class="chips">
+      <button class="chip" onclick="quickPrompt('Explain Code')">Explain Code</button>
+      <button class="chip" onclick="quickPrompt('Write Script')">Write Script</button>
+      <button class="chip" onclick="quickPrompt('Generate Article')">Generate Article</button>
+    </div>
+    <button class="btn" onclick="runPrompt()">Run</button>
+  </div>
+</div>
+</section>
+
+<section class="tools">
+<div class="tools-head"><strong>AI Code Tools</strong><span class="mini" id="modeLabel">Mode: AI Chat</span></div>
+<div class="tools-body">
+  <div><div class="label">Language</div><select id="language"><option>Auto Detect</option><option>Python</option><option>JavaScript</option><option>PHP</option><option>HTML</option><option>Lua</option></select></div>
+  <div class="upload" onclick="document.getElementById('file').click()">Attach / Upload file<input id="file" type="file" hidden onchange="showFileName(this)"><div class="mini" id="fileInfo">No file selected</div></div>
+  <div><div class="label">Output</div><div class="output" id="output">Output will appear here</div></div>
+</div>
+</section>
+</div>
+</main>
+</div>
+
+<script>
+let connected=false;
+let mode='chat';
+
+function connectApi(){
+  const key=document.getElementById('apiKey').value.trim();
+  const s=document.getElementById('apiStatus');
+  if(!key){s.textContent='API key kosong';s.className='status';return}
+  connected=true;
+  localStorage.setItem('openrouter_api_key', key);
+  s.textContent='Connected';
+  s.className='status ok';
+}
+
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('openrouter_api_key');
+  if(saved){document.getElementById('apiKey').value = saved;}
+});
+
+function toggleTheme(){document.body.classList.toggle('light')}
+function newChat(){
+  document.getElementById('messages').innerHTML='<div class="msg ai"><strong>AgentRouter AI</strong><br>New chat ready.</div>';
+  document.getElementById('output').textContent='Output will appear here';
+}
+function setMode(m,btn){
+  mode=m;
+  document.getElementById('modeLabel').textContent='Mode: '+(m==='chat'?'AI Chat':'AI Code');
+  btn.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+}
+function quickPrompt(t){document.getElementById('prompt').value=t+': '}
+function showFileName(input){document.getElementById('fileInfo').textContent=input.files[0]?.name || 'No file selected'}
+
+async function runPrompt(){
+  const p=document.getElementById('prompt').value.trim();
+  if(!p)return;
+
+  const apiKey=document.getElementById('apiKey').value.trim();
+  if(!apiKey){
+    alert('Isi OpenRouter API key dulu.');
+    return;
+  }
+
+  const msgs=document.getElementById('messages');
+  msgs.innerHTML+='<div class="msg user">'+escapeHtml(p)+'</div>';
+  const loadingId = 'loading_' + Date.now();
+  msgs.innerHTML+='<div class="msg ai" id="'+loadingId+'"><strong>AI Response</strong><br>Loading...</div>';
+  msgs.scrollTop=msgs.scrollHeight;
+
+  let reply='';
+  try{
+    const endpoint=document.getElementById('endpoint').value.trim()||'/api/chat';
+    const res=await fetch(endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        prompt:p,
+        model:document.getElementById('model').value,
+        mode,
+        apiKey,
+        temperature:Number(document.getElementById('temperature').value)
+      })
+    });
+
+    const text=await res.text();
+    let data;
+    try{
+      data=JSON.parse(text);
+    }catch(e){
+      throw new Error('Endpoint tidak mengembalikan JSON. Response awal: '+text.slice(0,140));
+    }
+
+    if(!res.ok){
+      throw new Error(data.error || data.message || 'Request gagal');
+    }
+
+    reply=data.reply || data.error || 'No response from AI';
+  }catch(e){
+    reply='Gagal request endpoint: '+e.message;
+  }
+
+  document.getElementById(loadingId).innerHTML='<strong>AI Response</strong><br>'+escapeHtml(reply).replaceAll('\\n','<br>');
+  document.getElementById('output').textContent=reply;
+  document.getElementById('prompt').value='';
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function escapeHtml(t){return String(t).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+</script>
+</body>
+</html>

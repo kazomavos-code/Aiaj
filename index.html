@@ -2,38 +2,133 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentRouter AI - OpenRouter Fixed</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AgentRouter AI Safe Fix</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,Arial,sans-serif}
-:root{--bg:#070b18;--panel:#101629;--panel2:#151d35;--text:#f8fbff;--muted:#9aa8c7;--line:rgba(255,255,255,.1);--brand:#4f7cff;--brand2:#00d4ff;--green:#49f5a5;--red:#ff5e7a}
-body.light{--bg:#f4f7fb;--panel:#fff;--panel2:#eef3fb;--text:#111827;--muted:#667085;--line:#dbe3ef}
-body{background:var(--bg);color:var(--text);min-height:100vh}
-.app{display:grid;grid-template-columns:320px 1fr;min-height:100vh}
-aside{background:linear-gradient(180deg,var(--panel),#0a1020);border-right:1px solid var(--line);padding:22px;display:flex;flex-direction:column;gap:18px}
-body.light aside{background:var(--panel)}
-.brand{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;font-weight:900}
-.brand h1{font-size:22px}.brand span{color:var(--brand2)}
-.card{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:16px}
-.label{font-size:13px;color:var(--muted);margin-bottom:8px}
-.row{display:flex;gap:10px;align-items:center}
-.input,select,textarea{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:12px;outline:none}
-textarea{resize:vertical;min-height:150px}
-.btn{border:none;border-radius:14px;padding:12px 14px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:white;font-weight:800;cursor:pointer}
-.btn.secondary{background:transparent;border:1px solid var(--line);color:var(--text)}
-.btn.full{width:100%}
-.status{font-size:13px;color:var(--red);margin-top:8px}.status.ok{color:var(--green)}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:999px;padding:8px 11px;font-size:13px;cursor:pointer}
-.chip.active{color:white;background:linear-gradient(135deg,var(--brand),var(--brand2));border:none}
-main{display:flex;flex-direction:column;min-width:0}
-.topbar{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(255,255,255,.02)}
-.topbar h2{font-size:20px}.topbar p{color:var(--muted);font-size:13px}
-.content{display:grid;grid-template-columns:1fr 410px;gap:20px;padding:20px;flex:1;min-height:0}
-.chat,.tools{background:var(--panel);border:1px solid var(--line);border-radius:24px;overflow:hidden;display:flex;flex-direction:column}
-.chat-head,.tools-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-.messages{padding:18px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:14px;min-height:360px}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#070b18;color:white;min-height:100vh;padding:20px}
+.app{max-width:1000px;margin:auto}
+.card{background:#101629;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:20px;margin-bottom:16px}
+textarea,select,input{width:100%;background:#070b18;color:white;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px;margin-top:8px}
+textarea{min-height:150px}
+button{background:linear-gradient(135deg,#4f7cff,#00d4ff);color:white;border:none;border-radius:12px;padding:12px 18px;font-weight:bold;cursor:pointer;margin-top:10px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.msg{padding:14px;border-radius:14px;margin-top:12px;white-space:pre-wrap;line-height:1.5}
+.user{background:#2563eb}
+.ai{background:#151d35;border:1px solid rgba(255,255,255,.12)}
+pre{white-space:pre-wrap;background:#050914;padding:12px;border-radius:12px;overflow:auto}
+.small{color:#9aa8c7;font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <h1>AgentRouter AI Safe Fix</h1>
+    <p class="small">ENV Vercel wajib: AGENT_ROUTER_TOKEN</p>
+    <div class="row">
+      <button onclick="testHealth()">Test API</button>
+      <button onclick="testEnv()">Test ENV</button>
+      <button onclick="clearChat()">Clear</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Model</label>
+    <select id="model">
+      <option value="gpt-4o-mini">gpt-4o-mini</option>
+      <option value="gpt-4o">gpt-4o</option>
+      <option value="gpt-5">gpt-5</option>
+      <option value="claude-3-5-sonnet">claude-3-5-sonnet</option>
+      <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+    </select>
+
+    <label>Prompt</label>
+    <textarea id="prompt" placeholder="Tulis prompt..."></textarea>
+    <button onclick="sendPrompt()">Run</button>
+  </div>
+
+  <div class="card">
+    <h3>Chat</h3>
+    <div id="chat"></div>
+  </div>
+
+  <div class="card">
+    <h3>Debug</h3>
+    <pre id="debug">Debug muncul di sini.</pre>
+  </div>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const debug = document.getElementById('debug');
+
+function addMsg(type, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.textContent = text;
+  chat.appendChild(div);
+}
+
+async function testHealth() {
+  try {
+    const res = await fetch('/api/health');
+    const text = await res.text();
+    debug.textContent = 'HTTP ' + res.status + '\n' + text;
+  } catch (e) {
+    debug.textContent = 'Health error: ' + e.message;
+  }
+}
+
+async function testEnv() {
+  try {
+    const res = await fetch('/api/env-check');
+    const text = await res.text();
+    debug.textContent = 'HTTP ' + res.status + '\n' + text;
+  } catch (e) {
+    debug.textContent = 'ENV error: ' + e.message;
+  }
+}
+
+async function sendPrompt() {
+  const prompt = document.getElementById('prompt').value.trim();
+  const model = document.getElementById('model').value;
+  if (!prompt) return alert('Prompt kosong');
+
+  addMsg('user', prompt);
+  addMsg('ai', 'Loading...');
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt, model })
+    });
+
+    const text = await res.text();
+    debug.textContent = 'HTTP ' + res.status + '\n' + text;
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      throw new Error('Server tidak balas JSON. Response: ' + text.slice(0, 200));
+    }
+
+    const aiMsgs = document.querySelectorAll('.ai');
+    aiMsgs[aiMsgs.length - 1].textContent = data.reply || data.error || 'No response';
+  } catch (e) {
+    const aiMsgs = document.querySelectorAll('.ai');
+    aiMsgs[aiMsgs.length - 1].textContent = 'Error: ' + e.message;
+  }
+}
+
+function clearChat() {
+  chat.innerHTML = '';
+  debug.textContent = 'Debug muncul di sini.';
+}
+</script>
+</body>
+</html>
 .msg{max-width:85%;padding:14px 16px;border-radius:18px;line-height:1.55}
 .msg.ai{background:var(--panel2);border:1px solid var(--line)}
 .msg.user{background:linear-gradient(135deg,var(--brand),var(--brand2));align-self:flex-end;color:white}
